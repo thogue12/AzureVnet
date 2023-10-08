@@ -20,7 +20,7 @@ provider "azurerm" {
 
 resource "azurerm_resource_group" "resource_group" {
   name     = "tims_rg"
-  location = "Eastus"
+  location = var.location
 }
 
 # Create a virtual network within the resource group
@@ -28,15 +28,15 @@ resource "azurerm_resource_group" "resource_group" {
 resource "azurerm_virtual_network" "vnet" {
   name                = "tims_vnet"
   resource_group_name = azurerm_resource_group.resource_group.name
-  location            = azurerm_resource_group.resource_group.location
-  address_space       = ["10.0.0.0/16"]
+  location            = var.location
+  address_space       = var.vnet_address_space
 }
 
 #Network Security Group and Rule(s)
 
 resource "azurerm_network_security_group" "network_sg" {
   name                = "tims_nsg"
-  location            = azurerm_resource_group.resource_group.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.resource_group.name
 
   security_rule {
@@ -52,13 +52,15 @@ resource "azurerm_network_security_group" "network_sg" {
   }
 }
 
-resource "azurerm_subnet" "pub-subnet1" {
-  name                 = "public-sub"
-  virtual_network_name = "tims_vnet"
-  resource_group_name  = "tims_rg"
-  address_prefixes     = ["10.0.0.0/24"]
+#I was constantly running into a problem on lines 58 and 59 and it was becuase when naming the resource group and virtual network
+#I was adding the ""  marks with name and they did not need them here. once I fixed that it worked perfectly
+resource "azurerm_subnet" "pub_subnet1" {
+  name                 = "public_sub"
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  resource_group_name  = azurerm_resource_group.resource_group.name
+  address_prefixes     = var.pub_sub1_address
 }
 
 output "subnet_id" {
-  value = resource.azurerm_subnet.pub-subnet1.id
+  value = resource.azurerm_subnet.pub_subnet1.id
 }
