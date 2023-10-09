@@ -25,6 +25,7 @@ resource "azurerm_resource_group" "resource_group" {
 
 # Create a virtual network within the resource group
 
+
 resource "azurerm_virtual_network" "vnet" {
   name                = "tims_vnet"
   resource_group_name = azurerm_resource_group.resource_group.name
@@ -59,6 +60,14 @@ resource "azurerm_subnet" "pub_subnet1" {
   virtual_network_name = azurerm_virtual_network.vnet.name
   resource_group_name  = azurerm_resource_group.resource_group.name
   address_prefixes     = var.pub_sub1_address
+}
+
+resource "azurerm_subnet" "database_subnet" {
+  name                 = "db_sub"
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  resource_group_name  = azurerm_resource_group.resource_group.name
+  address_prefixes     = var.database_sub_address
+  
 }
 
 output "subnet_id" {

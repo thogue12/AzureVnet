@@ -22,3 +22,9 @@ variable "pub_sub1_address" {
   default     = ["10.0.0.0/24"]
   description = "the default address space of public subnet1"
 }
+
+variable "database_sub_address" {
+  type        = list
+  default     = ["10.0.1.0/24"]
+  description = "the default address space of the database subnet"
+}
