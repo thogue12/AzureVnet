@@ -1,67 +1,48 @@
 
-#create storage account the house the database
-
-resource "azurerm_storage_account" "stoage_account" {
-  name                     = "timsnewstgsccnt2705"
-  resource_group_name      = azurerm_resource_group.resource_group.name
-  location                 = var.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-}
-
 
 #create a randomly generating password
 resource "random_password" "password" {
-  length = 16
-  lower  = false
+  length           = 16
+  special          = false
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
 
-resource "azurerm_mssql_server" "mssql_server" {
-  name                         = "mssqlserver"
-  resource_group_name          = azurerm_resource_group.resource_group.name
-  location                     = var.location
-  version                      = "12.0"
-  administrator_login          = "mssqladmin"
-  administrator_login_password = random_password.password.result
-  minimum_tls_version          = "1.2"
+
+#create ms sql server and disable the public access
+resource "azurerm_mssql_server" "mssql_server1" {
+  name                          = var.mssql_server_name
+  resource_group_name           = azurerm_resource_group.resource_group.name
+  location                      = var.location
+  version                       = "12.0"
+  administrator_login           = var.database_username
+  administrator_login_password  = random_password.password.result
+  minimum_tls_version           = "1.2"
+  public_network_access_enabled = false
 
 }
 
-
+#create ms sql database
 resource "azurerm_mssql_database" "mssql_database" {
-  name           = "tims-mssql-db"
-  server_id      = azurerm_mssql_server.mssql_server.id
-  collation      = "SQL_Latin1_General_CP1_CI_AS"
-  license_type   = "LicenseIncluded"
-  max_size_gb    = 4
-  read_scale     = true
-  sku_name       = "S0"
-  zone_redundant = true
-
-
+  name      = var.mssql_database_name
+  server_id = azurerm_mssql_server.mssql_server1.id
 }
 
-# Create a secret in Azure Key Vault for the database password
-resource "azurerm_key_vault_secret" "mysql_password_secret" {
-  name         = "MySQLPassword"
-  value        = random_password.password.result
-  key_vault_id  = azurerm_key_vault.key_vault.id
+#create the private endpoint for the database/server
+#associate the db with a specific subnet
+resource "azurerm_private_endpoint" "private_endpoint" {
+  name                = "db-endpoint"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.resource_group.name
+  subnet_id           = azurerm_subnet.database_subnet.id
 
+  private_service_connection {
+    name                           = "mssql_db_endpoint"
+    private_connection_resource_id = azurerm_mssql_server.mssql_server1.id
+    is_manual_connection           = false
+    subresource_names              = ["sqlServer"]
+  }
 }
 
 
-data "azurerm_client_config" "current" {}
 
-resource "azurerm_key_vault" "key_vault" {
-  name                        = "mssqlkeyvault"
-  location                    = var.location
-  resource_group_name         = azurerm_resource_group.resource_group.name
-  enabled_for_disk_encryption = true
-  soft_delete_retention_days  = 7
-  purge_protection_enabled    = true
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-
-  sku_name = "standard"
-
-}

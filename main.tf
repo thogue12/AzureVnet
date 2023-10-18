@@ -1,20 +1,29 @@
 # We strongly recommend using the required_providers block to set the
 # Azure Provider source and version being used
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "=3.0.0"
-    }
-  }
-}
+# terraform {
+#   required_providers {
+#     azurerm = {
+#       source = "hashicorp/azurerm"
+#       version = "3.76.0"
+#     }
+#     tls = {
+#       source = "hashicorp/tls"
+#       version = "4.0.4"
+#     }
+#      local = {
+#       source = "hashicorp/local"
+#       version = "2.4.0"
+#     }
 
-# Configure the Microsoft Azure Provider
-provider "azurerm" {
-  features {
+#   }
+# }
 
-  }
-}
+# # Configure the Microsoft Azure Provider
+# provider "azurerm" {
+#   features {
+
+#   }
+# }
 
 # Create a resource group
 
@@ -51,6 +60,24 @@ resource "azurerm_network_security_group" "network_sg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  #Rule for ssh traffic
+  security_rule {
+    name                       = "allow_ssh_from_anywhere"
+    priority                   = 210
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "pub_nsg_association" {
+  subnet_id                 = azurerm_subnet.pub_subnet1.id
+  network_security_group_id = azurerm_network_security_group.network_sg.id
 }
 
 #I was constantly running into a problem on lines 58 and 59 and it was becuase when naming the resource group and virtual network
@@ -67,9 +94,8 @@ resource "azurerm_subnet" "database_subnet" {
   virtual_network_name = azurerm_virtual_network.vnet.name
   resource_group_name  = azurerm_resource_group.resource_group.name
   address_prefixes     = var.database_sub_address
-  
+
 }
 
-output "subnet_id" {
-  value = resource.azurerm_subnet.pub_subnet1.id
-}
+
+
